@@ -1,0 +1,37 @@
+# Production overrides for a single cloud VM:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# - only Caddy is public (80/443, automatic HTTPS); backend and frontend stay on the internal network
+# - the local neural TTS image (22 GB) is skipped: narration uses Azure Speech (TTS_PROVIDER=azure in .env)
+services:
+  backend:
+    ports: !reset []
+    restart: unless-stopped
+    environment:
+      # small VM (e2-micro, 1 GB RAM + swap): one Manim render at a time, few parallel LLM scene jobs
+      RENDER_WORKERS: ${RENDER_WORKERS:-1}
+      SCENE_WORKERS: ${SCENE_WORKERS:-3}
+      RENDER_TIMEOUT_S: ${RENDER_TIMEOUT_S:-600}
+
+  frontend:
+    ports: !reset []
+    restart: unless-stopped
+
+  tts:
+    profiles: [ "local-tts" ]
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    depends_on:
+      - frontend
+
+volumes:
+  caddy-data:

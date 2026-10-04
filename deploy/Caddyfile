@@ -1,0 +1,11 @@
+# HTTPS in front of the Next.js app (it proxies /api and /media to the backend itself).
+# DOMAIN comes from the environment, e.g. 34.118.10.20.sslip.io (Let's Encrypt certificate is automatic).
+{$DOMAIN} {
+	encode gzip
+	reverse_proxy frontend:3000 {
+		# lesson generation endpoints can take a while
+		transport http {
+			read_timeout 10m
+		}
+	}
+}

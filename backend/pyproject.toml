@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tutorly-backend"
+version = "0.1.0"
+description = "Tutorly: AI-powered mathematical explanation system"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "sqlalchemy>=2.0",
+    "google-genai>=1.20",
+    "sympy>=1.13",
+    "networkx>=3.3",
+    "manim>=0.19",
+    "pyyaml>=6.0",
+    "piper-tts>=1.8",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "httpx>=0.27",
+]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "integration: requires GEMINI_API_KEY and network access",
+    "render: requires a working Manim installation",
+]

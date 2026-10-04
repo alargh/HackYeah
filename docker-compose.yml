@@ -1,0 +1,78 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      # Values come from the shell or from ./.env (never committed).
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.5-flash}
+      AUTO_RENDER: ${AUTO_RENDER:-true}
+      VOICEOVER: ${VOICEOVER:-true}
+      TTS_PROVIDER: ${TTS_PROVIDER:-local}
+      TTS_URL: http://tts:8001
+      AZURE_SPEECH_KEY: ${AZURE_SPEECH_KEY:-}
+      AZURE_SPEECH_REGION: ${AZURE_SPEECH_REGION:-swedencentral}
+      AZURE_TTS_VOICES: ${AZURE_TTS_VOICES:-pl:pl-PL-MarekNeural,en:en-US-AndrewMultilingualNeural}
+      AZURE_TTS_RATE: ${AZURE_TTS_RATE:--4%}
+      MANIM_QUALITY: ${MANIM_QUALITY:-l}
+      RENDER_TIMEOUT_S: ${RENDER_TIMEOUT_S:-240}
+      RENDER_WORKERS: ${RENDER_WORKERS:-2}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      DATA_DIR: /data
+    volumes:
+      - tutorly-data:/data
+    ports:
+      - "8000:8000"
+    # Hardening: generated Manim code runs inside this container (see backend/app/services/manim).
+    user: "10001:10001"
+    cap_drop: [ ALL ]
+    security_opt: [ "no-new-privileges:true" ]
+    pids_limit: 512
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')" ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+
+  # Local neural voice (Chatterbox Multilingual, MIT). Separate image: its torch/numpy pins conflict with Manim.
+  # The backend falls back to the offline Piper voice whenever this service is busy, starting or absent.
+  tts:
+    build:
+      context: ./tts
+    environment:
+      TTS_THREADS: ${TTS_THREADS:-8}
+      TTS_VOICE_DIR: /voices
+    volumes:
+      # Reference voices per language (<lang>.wav, 10-15 s of clean speech). Replace pl.wav with your own recording.
+      - ./tts/voices:/voices:ro
+    # NVIDIA GPU for fast narration (Docker Desktop + WSL2 GPU support); the service falls back to CPU without one.
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')" ]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        BACKEND_URL: http://backend:8000 # baked into the Next.js rewrites at build time
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  tutorly-data:

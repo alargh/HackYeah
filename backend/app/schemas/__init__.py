@@ -1,0 +1,55 @@
+from app.schemas.generation import (
+    ManimCode,
+    NarrationIR,
+    NarrationSegment,
+    FollowupPlan,
+    Voiceover,
+    VoiceoverSegment,
+    AnimationPlan,
+    AnimationStep,
+    VisualActionSpec,
+    VisualBeat,
+    VisualObjectSpec,
+    VisualPlan,
+)
+from app.schemas.lesson import ConceptLedger, LedgerEntry, LessonIR, MathematicalState, SceneIR, VisualObject
+from app.schemas.problem import EnumerationConstraint, EnumerationSpec, GeometrySpec, GraphSpec, ProblemIR
+from app.schemas.scope import ScopeIR, ScopeWarning
+from app.schemas.solution import FinalResult, ReasoningStep, SolutionIR, VerificationInfo
+from app.schemas.validation import LessonStatus, RenderStatus, ValidationIssue, ValidationResult
+
+__all__ = [
+    "ConceptLedger",
+    "EnumerationConstraint",
+    "EnumerationSpec",
+    "FinalResult",
+    "GeometrySpec",
+    "GraphSpec",
+    "LedgerEntry",
+    "LessonIR",
+    "LessonStatus",
+    "ManimCode",
+    "MathematicalState",
+    "NarrationIR",
+    "NarrationSegment",
+    "ProblemIR",
+    "ReasoningStep",
+    "RenderStatus",
+    "SceneIR",
+    "ScopeIR",
+    "ScopeWarning",
+    "SolutionIR",
+    "FollowupPlan",
+    "Voiceover",
+    "VoiceoverSegment",
+    "ValidationIssue",
+    "ValidationResult",
+    "VerificationInfo",
+    "AnimationPlan",
+    "AnimationStep",
+    "VisualActionSpec",
+    "VisualBeat",
+    "VisualObjectSpec",
+    "VisualObject",
+    "VisualPlan",
+]

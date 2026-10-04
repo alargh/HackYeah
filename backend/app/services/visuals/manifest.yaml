@@ -1,0 +1,267 @@
+# Tutorly visual capability manifest (metadata only; implementations live in runtime/tutorly_visuals).
+# The visual planner never sees this whole file: retrieval.py selects the parts relevant to a scene.
+version: 1.0.0
+
+# Semantic emphasis roles. The model names a role; the runtime theme owns colours, strokes and fonts.
+emphasis:
+  - {id: neutral, meaning: "default state of an object"}
+  - {id: secondary, meaning: "context that should recede"}
+  - {id: active, meaning: "the object the narration is currently acting on"}
+  - {id: focus, meaning: "an important choice or the key idea of the step"}
+  - {id: forbidden, meaning: "violates a constraint / will be excluded"}
+  - {id: result, meaning: "an established result or the final answer"}
+  - {id: transformation, meaning: "an object produced by regrouping or rewriting"}
+
+object_types:
+  - {id: item, meaning: "a distinguishable mathematical object (person, element, digit), value = short label"}
+  - {id: slot, meaning: "a position to be filled (seat in a row, digit position), value = position label"}
+  - {id: formula, meaning: "a LaTeX expression, value = LaTeX (ASCII only)"}
+  - {id: counter, meaning: "a running count with a caption, value = initial number"}
+  - {id: label, meaning: "a SHORT text annotation (max ~6 words), value = text"}
+  - {id: arrangement, meaning: "one concrete ordering of items, value = items separated by spaces, e.g. 'A B'"}
+  - {id: region, meaning: "a set drawn as an area (all outcomes, forbidden outcomes), value = caption"}
+  - {id: node, meaning: "graph or tree vertex, value = label; optional parent = id of parent node (trees)"}
+  - {id: edge, meaning: "connection between two nodes, members = [source, target]"}
+  - {id: solid, meaning: "3D solid; value = kind (cube, cuboid, prism_square, prism_triangular, pyramid_square, pyramid_rectangular, pyramid_triangular, tetrahedron, cylinder, cone, frustum, sphere, ball_pyramid); params = numeric dims ['a=4'] / ['a=6','h=4'] / ['r=2','h=5']; members = vertex labels in standard order (cube: ABCD bottom, EFGH top, E above A); every vertex becomes a point id. Round solids: cylinder [r=2,h=5] (points O, O1 base/top centres, A B bottom rim diameter, C D top rim, C above A); cone [r=3,h=4] (O base centre, S apex, A B rim diameter); frustum [r1=3,r2=1.5,h=3] (O, O1, A, B, C, D); sphere [r=3] (O centre, A B diameter, N top pole). A second ROUND solid (inscribed / circumscribed) may share the scene with params ['at=<point id>', 'r=...']"}
+  - {id: figure, meaning: "plane figure drawn in its true shape; value = kind (regular_polygon, triangle_equilateral, right_triangle, triangle, square, rectangle, isosceles_trapezoid); params = dims, symbolic allowed ['n=6', 'a=a']; members = vertex labels (A, B, C, ... counter-clockwise, side AB first); every vertex becomes a point id"}
+  - {id: point, meaning: "derived 3D point; members [P, Q] = midpoint, [A, B, C, ...] = centre, params ['t=1/3'] = point on PQ; value = label"}
+  - {id: segment, meaning: "3D segment between two points, members = [P, Q] (edges, diagonals, heights, auxiliary lines)"}
+  - {id: plane, meaning: "3D polygon through points, members = [P, Q, R, ...] (a cross-section or a right triangle to solve)"}
+  - {id: angle, meaning: "3D angle at the middle point, members = [P, V, Q]"}
+
+# Semantic operations (the visual grammar). Each maps mathematical meaning to motion.
+operations:
+  - {id: create, meaning: "a new object enters the reasoning"}
+  - {id: remove, meaning: "an object leaves the reasoning; with emphasis forbidden it is crossed out first"}
+  - {id: highlight, meaning: "an important choice or object; recolours to the emphasis role"}
+  - {id: merge, meaning: "grouping; targets move together and are enclosed into result (a block)"}
+  - {id: split, meaning: "one object opens into several concrete cases (results with values)"}
+  - {id: branch, meaning: "case analysis; a node branches into child cases (results with values)"}
+  - {id: transform, meaning: "equivalent representation; formula target rewrites into result with value"}
+  - {id: morph, meaning: "one object becomes another existing object (equivalent form)"}
+  - {id: connect, meaning: "a relation between two objects (targets = [a, b])"}
+  - {id: grow, meaning: "growth; objects appear one after another (tree levels, sequences)"}
+  - {id: compare, meaning: "two objects are placed side by side and contrasted"}
+  - {id: count, meaning: "objects are counted one by one into a counter (result) reaching value"}
+  - {id: fill_slots, meaning: "slots are filled left to right with the number of choices (values)"}
+  - {id: partition, meaning: "a region is split into a sub-region result (e.g. forbidden part of all outcomes)"}
+  - {id: traverse, meaning: "a walk through nodes in order (targets = path)"}
+  - {id: emphasize_result, meaning: "the result of the step is established"}
+  - {id: focus, meaning: "spotlight on targets; everything else dims"}
+  - {id: unfocus, meaning: "end the spotlight"}
+  - {id: enumerate, meaning: "lay out concrete arrangements of the target items as a grid (all of them when few, otherwise a sample); arrangements violating the problem's constraint are marked forbidden automatically"}
+  - {id: measure, meaning: "write a length/angle on a segment or angle (values = [LaTeX value]); Python checks it against the exact geometry"}
+  - {id: revolve, meaning: "rotate a plane figure about an axis segment in its plane; the solid of revolution grows as it turns (targets = [figure, axis segment], results = [solid id])"}
+  - {id: flatten, meaning: "lift a plane (triangle/polygon) out of the solid and lay it flat beside it, true shape, with right angles marked (results = [panel id])"}
+
+# Operations every template supports.
+common_operations: [create, remove, highlight, emphasize_result, focus, unfocus]
+
+layouts:
+  - {id: center_focus, meaning: "one main subject in the centre"}
+  - {id: horizontal_row, meaning: "objects in one row (people in a line, slots, units)"}
+  - {id: split_view, meaning: "two or more columns side by side (cases, before/after, comparison)"}
+  - {id: tree_layout, meaning: "levels from top to bottom (counting trees, branching)"}
+  - {id: graph_layout, meaning: "nodes on a circle with edges"}
+  - {id: grid_layout, meaning: "many small arrangements in a grid (all possibilities)"}
+  - {id: space_3d, meaning: "3D stage with a tilted camera; formulas and flattened sections on the right"}
+
+cameras:
+  - {id: wide_establishing, meaning: "the whole stage; use to open a scene or return after a focus"}
+  - {id: focus_subject, meaning: "move in on the first target of the beat"}
+  - {id: follow_transform, meaning: "frame the object produced by the beat"}
+  - {id: split_view, meaning: "frame all columns of a split layout"}
+  - {id: three_quarter, meaning: "3D: standard three-quarter view (phi 70, theta -45)"}
+  - {id: orbit, meaning: "3D: slow orbit around the solid during this beat (shows depth; stops at the end of the beat)"}
+  - {id: top_view, meaning: "3D: look straight down (base plane, projections)"}
+  - {id: front_view, meaning: "3D: look from the front (heights, side faces)"}
+
+motion:
+  - {id: create, meaning: "fade/grow/write in by object type"}
+  - {id: remove, meaning: "fade out, or cross out then fade for forbidden"}
+  - {id: highlight, meaning: "recolour + indicate"}
+  - {id: merge, meaning: "indicate → move together → enclose → relabel → relayout"}
+  - {id: split, meaning: "copies fly out of the source into columns, one by one"}
+  - {id: transform, meaning: "matching-tex rewrite"}
+  - {id: morph, meaning: "shape interpolation into the target"}
+  - {id: connect, meaning: "draw a line/arrow between objects (dashed auxiliary segment between 3D points)"}
+  - {id: enumerate, meaning: "lagged grid reveal, forbidden cases dimmed and struck"}
+  - {id: measure, meaning: "value label grows from the segment's midpoint / angle arc"}
+  - {id: revolve, meaning: "the figure turns 360 degrees about the dashed axis while the surface it sweeps grows"}
+  - {id: flatten, meaning: "indicate the 3D polygon, then its true shape is drawn flat in a side panel"}
+
+templates:
+  - id: arrangement_gallery
+    description: Show concrete arrangements side by side as a grid; forbidden ones are marked, valid ones counted.
+    good_for: [permutations, arrangements, constraints, adjacency_constraints, verification, choices]
+    supports: [enumerate, count, compare, transform]
+    object_types: [item, arrangement, formula, counter, label]
+    default_layout: grid_layout
+    default_camera: wide_establishing
+  - id: solid_reveal
+    description: Build a 3D solid edge by edge, name its vertices and orbit around it so its shape is understood.
+    good_for: [stereometry, solid_geometry, geometry_3d, cube, cuboid, pyramid, prism, tetrahedron, cylinder, cone, sphere, frustum]
+    supports: [measure, connect]
+    object_types: [solid, point, segment, plane, angle, formula]
+    default_layout: space_3d
+    default_camera: orbit
+  - id: space_construction
+    description: Construct auxiliary elements inside a solid (diagonals, heights, midpoints, cross-sections, angles) and measure them.
+    good_for: [stereometry, solid_geometry, distance, diagonal, angle, height, cross_section, midpoint]
+    supports: [connect, measure, transform]
+    object_types: [solid, point, segment, plane, angle, formula]
+    default_layout: space_3d
+    default_camera: three_quarter
+  - id: section_flatten
+    description: Lift the key triangle out of the solid, lay it flat with its right angle, and compute with Pythagoras/trigonometry.
+    good_for: [stereometry, distance, angle, diagonal, pythagorean_theorem, trigonometry, right_triangle]
+    supports: [flatten, measure, transform, connect]
+    object_types: [solid, point, segment, plane, angle, formula]
+    default_layout: space_3d
+    default_camera: three_quarter
+  - id: plane_figure
+    description: Draw a plane figure in its true shape, construct heights / diagonals / midpoints, measure and compute.
+    good_for: [planimetry, polygon, triangle, hexagon, area, perimeter, height, geometry_2d, regular_polygon]
+    supports: [measure, connect, flatten, transform]
+    object_types: [figure, point, segment, plane, angle, formula]
+    default_layout: space_3d
+    default_camera: top_view
+  - id: solid_of_revolution
+    description: Rotate a plane figure about an axis so the solid of revolution appears, then name its parts (cylinders, cones) and compute volume / surface.
+    good_for: [solid_of_revolution, rotation, revolution, volume, surface_area, stereometry, cylinder, cone, pappus]
+    supports: [revolve, measure, connect, transform]
+    object_types: [figure, solid, point, segment, plane, angle, formula]
+    default_layout: space_3d
+    default_camera: three_quarter
+  - id: problem_reveal
+    description: Establish the objects of the problem on stage, then state the goal.
+    good_for: [any, setup, permutations, arrangements, graphs, sets]
+    supports: [grow, connect]
+    object_types: [item, slot, node, edge, label, formula]
+    default_layout: horizontal_row
+    default_camera: wide_establishing
+    general: true
+  - id: constraint_reveal
+    description: Make a constraint visible on the objects it restricts (a forbidden link or position).
+    good_for: [constraints, adjacency_constraints, positions, restrictions]
+    supports: [connect, compare]
+    object_types: [item, slot, label]
+    default_layout: horizontal_row
+    default_camera: focus_subject
+  - id: permutation_counter
+    description: Objects occupy positions one by one; slots show the shrinking number of choices whose product is n!.
+    good_for: [permutations, factorial, multiplication_rule, arrangements, choices]
+    supports: [fill_slots, count, transform, grow]
+    object_types: [item, slot, formula, counter]
+    default_layout: horizontal_row
+    default_camera: wide_establishing
+  - id: block_method
+    description: Merge several objects into one combinatorial block, count the units, then open the block's internal orders.
+    good_for: [adjacency_constraints, grouping, block_method, permutations]
+    supports: [merge, split, count, transform]
+    object_types: [item, formula, counter, arrangement, label]
+    default_layout: horizontal_row
+    default_camera: follow_transform
+  - id: case_split
+    description: Split reasoning into visually separated cases, each in its own column.
+    good_for: [case_analysis, internal_orders, adjacency_constraints, conditional_reasoning, multiplication_rule]
+    supports: [split, branch, compare, count]
+    object_types: [arrangement, item, formula, label, node]
+    default_layout: split_view
+    default_camera: split_view
+  - id: counting_tree
+    description: A tree whose levels are successive choices; leaves are counted.
+    good_for: [multiplication_rule, choices, case_analysis, sequences, probability_trees]
+    supports: [branch, grow, count, traverse]
+    object_types: [node, edge, counter, formula]
+    default_layout: tree_layout
+    default_camera: wide_establishing
+  - id: complement_counting
+    description: Draw all outcomes as a region, carve out the forbidden part, remove it, keep the rest.
+    good_for: [complement_counting, subtraction, forbidden_outcomes, constraints]
+    supports: [partition, transform, compare]
+    object_types: [region, formula, label, counter]
+    default_layout: center_focus
+    default_camera: wide_establishing
+  - id: graph_build
+    description: Build a graph vertex by vertex and edge by edge.
+    good_for: [graphs, graph_theory, networks, trees]
+    supports: [grow, connect]
+    object_types: [node, edge, label]
+    default_layout: graph_layout
+    default_camera: wide_establishing
+  - id: graph_traversal
+    description: Walk a graph step by step, changing visited state.
+    good_for: [graphs, traversal, bfs, dfs, connectivity, eulerian]
+    supports: [traverse, connect, count]
+    object_types: [node, edge, counter, label]
+    default_layout: graph_layout
+    default_camera: wide_establishing
+  - id: highlight_path
+    description: Emphasise one path (shortest path, Euler path) inside a graph.
+    good_for: [graphs, shortest_path, paths, distances]
+    supports: [traverse, connect, transform]
+    object_types: [node, edge, formula, label]
+    default_layout: graph_layout
+    default_camera: focus_subject
+  - id: formula_transform
+    description: Rewrite an expression step by step, keeping matching parts in place.
+    good_for: [any, algebra, arithmetic, factorial, subtraction, simplification]
+    supports: [transform, morph]
+    object_types: [formula, label]
+    default_layout: center_focus
+    default_camera: follow_transform
+    general: true
+  - id: before_after
+    description: Show a state before and after an operation side by side.
+    good_for: [any, transformation, grouping, removal]
+    supports: [compare, morph, transform]
+    object_types: [item, arrangement, formula, label, region]
+    default_layout: split_view
+    default_camera: split_view
+    general: true
+  - id: comparison
+    description: Contrast two quantities, cases or methods.
+    good_for: [comparison, case_analysis, complement_counting, verification]
+    supports: [compare, count, transform]
+    object_types: [formula, arrangement, region, counter, label]
+    default_layout: split_view
+    default_camera: split_view
+  - id: spotlight
+    description: Isolate one object or relation; everything else recedes.
+    good_for: [any, key_idea, definition]
+    supports: [connect]
+    object_types: [item, formula, node, arrangement, label]
+    default_layout: center_focus
+    default_camera: focus_subject
+    general: true
+  - id: summary
+    description: Recap the established results in order and land on the final answer.
+    good_for: [any, summary, final_answer, verification]
+    supports: [transform, grow]
+    object_types: [formula, label, counter]
+    default_layout: center_focus
+    default_camera: wide_establishing
+    general: true
+
+# Visual-quality rules used by VisualPlanValidator. Severity: error (plan rejected, re-planned) or warning.
+quality:
+  min_visual_objects: {value: 2, severity: error}              # non-label objects in an instructional scene
+  min_actions_per_beat: {value: 1, severity: error}
+  max_consecutive_text_beats: {value: 1, severity: error}       # beats that only create labels/formulas
+  max_text_beat_ratio: {value: 0.5, severity: warning}
+  max_label_chars: {value: 48, severity: error}                 # one label
+  max_total_label_chars: {value: 140, severity: warning}        # all labels of a scene
+  max_camera_moves: {value: 3, severity: error}
+  max_repeated_highlights: {value: 2, severity: warning}        # same target highlighted in consecutive beats
+  require_math_operation_for_steps: {value: true, severity: error}
+  require_emphasis: {value: true, severity: error}
+  require_spatial_separation_for_cases: {value: true, severity: error}
+  prefer_transform_for_formulas: {value: true, severity: warning}
+  require_graph_state_change: {value: true, severity: error}
+  max_beats: {value: 10, severity: warning}
+  require_figure_for_geometry: {value: true, severity: error}  # geometry problems must draw the real figure/solid
+  forbid_mixed_2d_3d: {value: true, severity: error}            # 3D objects need layout space_3d and no 2D tokens
+  require_measure_consistency: {value: true, severity: error}   # measured lengths/angles must equal the exact geometry
+  require_3d_depth_cue: {value: true, severity: warning}        # a solid should be orbited or seen from two views
+  max_gallery_items: {value: 24, severity: warning}
